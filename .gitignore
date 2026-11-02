@@ -1,0 +1,13 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Secrets - never upload these
+.env
+
+# Node (frontend, later)
+node_modules/
+
+# Uploaded photos (later)
+uploads/
