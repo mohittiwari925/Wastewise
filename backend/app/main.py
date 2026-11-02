@@ -1,23 +1,38 @@
 # WasteWise backend - main file
 # This is the entry point of our server. Everything starts here.
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
-# Create the app. The title shows up on the automatic API test page.
+from . import models  # noqa: F401  (importing it lets SQLAlchemy know about our tables)
+from .database import Base, engine, get_db
+
+# Create all the tables in PostgreSQL if they do not exist yet.
+Base.metadata.create_all(bind=engine)
+
 app = FastAPI(
     title="WasteWise API",
     description="Backend for the WasteWise waste management system",
 )
 
 
-# A "route" connects a URL to a Python function.
-# When someone opens http://127.0.0.1:8000/ this function runs.
 @app.get("/")
 def home():
     return {"message": "Welcome to WasteWise API"}
 
 
-# A health check: lets us (and later the frontend) test if the server is alive.
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# Tests that Python can really talk to PostgreSQL.
+# Depends(get_db) means: "FastAPI, please open a database session for me".
+@app.get("/db-test")
+def db_test(db: Session = Depends(get_db)):
+    version = db.execute(text("SELECT version()")).scalar()
+    tables = db.execute(
+        text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name")
+    ).scalars().all()
+    return {"database": "connected", "postgres_version": version, "tables": tables}
